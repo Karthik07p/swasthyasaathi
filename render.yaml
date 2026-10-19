@@ -1,6 +1,19 @@
-# Render blueprint for the SwasthyaSaathi backend (free tier).
+# Render blueprint for SwasthyaSaathi (free tier): the API and the hosted web app.
 # Dashboard: New + > Blueprint > pick this repo. Then fill in the secret env vars.
 services:
+  # Web app (static site, served from Render's CDN, never sleeps)
+  - type: web
+    name: swasthyasaathi
+    runtime: static
+    rootDir: client
+    buildCommand: npm ci --include=dev && npm run build
+    staticPublishPath: dist
+    envVars:
+      - key: NODE_VERSION
+        value: 22
+      - key: VITE_API_BASE
+        value: https://swasthyasaathi-api.onrender.com
+
   - type: web
     name: swasthyasaathi-api
     runtime: node

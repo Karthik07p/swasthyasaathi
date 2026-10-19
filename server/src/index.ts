@@ -35,7 +35,8 @@ const ALLOWED_ORIGINS = [
 
 app.use(
   cors({
-    origin: ALLOWED_ORIGINS,
+    // Also allow the hosted web app on Render (swasthyasaathi.onrender.com, or a suffixed variant)
+    origin: [...ALLOWED_ORIGINS, /^https:\/\/swasthyasaathi(-web)?(-[a-z0-9]+)?\.onrender\.com$/],
     methods: ['GET', 'POST', 'OPTIONS'],
     allowedHeaders: ['Content-Type'],
   })
