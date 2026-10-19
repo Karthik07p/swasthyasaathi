@@ -4,6 +4,8 @@ A vernacular AI triage companion for India's first mile of care. A patient descr
 
 > **Not a medical device.** SwasthyaSaathi routes patients to a specialist. It never diagnoses. All doctors and bookings in this repo are **demo data**; no real appointment is made.
 
+**Live demo:** https://swasthyasaathi-chcc.onrender.com (the backend runs on a free tier, so the first chat after a quiet period can take up to a minute while it wakes up)
+
 Built as a PM portfolio project: the product case study covers the problem, personas, metrics and go-to-market, and this repo is the working prototype.
 
 ## What it does
@@ -95,14 +97,18 @@ Never commit `server/.env`. It is gitignored.
 | `GET` | `/api/bookings/:reference` | Look up a booking |
 | `GET` | `/api/health` | Health check |
 
-## Deploy the backend (Render)
+## Deploy (Render)
+
+`render.yaml` defines two free services: the **API** (`swasthyasaathi-api`) and the **web app** (`swasthyasaathi`, a static site).
 
 1. In Render, choose **New > Blueprint** and select this repo; it reads `render.yaml`.
 2. Enter `MONGODB_URI` and `GEMINI_API_KEY` when prompted.
 3. In Atlas **Network Access**, allow `0.0.0.0/0` (Render's free tier has no fixed IP).
-4. Check `https://<your-service>.onrender.com/api/health`.
+4. Check `https://<your-api>.onrender.com/api/health`, then open the web app's URL from the Render dashboard.
 
-The free tier sleeps when idle, so the first request after a break can take up to a minute.
+If the API's URL differs from `https://swasthyasaathi-api.onrender.com`, update `VITE_API_BASE` in `render.yaml` (and the `API_BASE_URL` Actions variable for the APK). The API's CORS already allows `swasthyasaathi*.onrender.com` web origins.
+
+The free API tier sleeps when idle, so the first request after a break can take up to a minute. The app shows a "waking up the server" notice while it waits. A free uptime monitor pinging `/api/health` every 5 minutes keeps it awake.
 
 ## Build the Android app
 
