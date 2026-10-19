@@ -1,0 +1,20 @@
+# Render blueprint for the SwasthyaSaathi backend (free tier).
+# Dashboard: New + > Blueprint > pick this repo. Then fill in the secret env vars.
+services:
+  - type: web
+    name: swasthyasaathi-api
+    runtime: node
+    plan: free
+    rootDir: server
+    buildCommand: npm install --include=dev && npm run build
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_VERSION
+        value: 22
+      - key: MONGODB_URI
+        sync: false # paste your Atlas connection string
+      - key: GEMINI_API_KEY
+        sync: false # paste your Gemini key
+      - key: GEMINI_MODEL
+        value: gemini-3.5-flash
