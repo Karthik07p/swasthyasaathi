@@ -5,6 +5,7 @@ import mongoose from 'mongoose';
 import sessionRouter from './routes/session';
 import providersRouter from './routes/providers';
 import bookingsRouter from './routes/bookings';
+import { apiLimiter } from './middleware/limits';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -41,7 +42,10 @@ app.use(
     allowedHeaders: ['Content-Type'],
   })
 );
-app.use(express.json());
+// Behind Render's proxy: use the real client IP for rate limiting
+app.set('trust proxy', 1);
+app.use(express.json({ limit: '10kb' }));
+app.use('/api', apiLimiter);
 
 // ─── Routes ───────────────────────────────────────────────────────────────────
 

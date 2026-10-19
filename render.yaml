@@ -12,7 +12,7 @@ services:
       - key: NODE_VERSION
         value: 22
       - key: VITE_API_BASE
-        value: https://swasthyasaathi-api.onrender.com
+        sync: false # set in the Render dashboard: the API's URL (kept out of the repo)
 
   - type: web
     name: swasthyasaathi-api

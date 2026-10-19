@@ -5,6 +5,7 @@ import {
 } from '@google/generative-ai';
 import { Language, HistoryEntry } from '../models/Session';
 import { buildSystemPrompt, buildForceAnswerPrompt } from '../utils/prompts';
+import { consumeGeminiCall } from '../middleware/limits';
 
 const genai = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
 
@@ -85,6 +86,9 @@ export async function callGemini(
   language: Language,
   forceAnswer = false
 ): Promise<GeminiResponse> {
+  // Throws DailyCapError once today's call budget is used up (see middleware/limits.ts)
+  consumeGeminiCall();
+
   const systemInstruction = forceAnswer
     ? buildForceAnswerPrompt(slots, candidates, language)
     : buildSystemPrompt(slots, candidates, askedCount, language);

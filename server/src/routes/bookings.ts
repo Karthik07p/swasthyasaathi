@@ -4,6 +4,7 @@ import mongoose from 'mongoose';
 import Booking from '../models/Booking';
 import Provider from '../models/Provider';
 import Session from '../models/Session';
+import { bookingLimiter } from '../middleware/limits';
 
 const router = Router();
 
@@ -77,7 +78,7 @@ router.get('/availability', async (req: Request, res: Response) => {
 });
 
 // ─── POST /api/bookings ──────────────────────────────────────────────────────
-router.post('/', async (req: Request, res: Response) => {
+router.post('/', bookingLimiter, async (req: Request, res: Response) => {
   const { provider_id, session_id, patient_name, patient_phone, slot_date, slot_time } = req.body ?? {};
 
   if (!validId(provider_id)) return res.status(400).json({ error: 'Valid provider_id is required.' });

@@ -80,6 +80,8 @@ In Atlas, make sure your IP is in **Network Access**.
 | `GEMINI_MODEL` | no | Primary model, default `gemini-3.5-flash` |
 | `GEMINI_FALLBACK_MODELS` | no | Comma-separated fallbacks tried if the primary is overloaded |
 | `CORS_ORIGINS` | no | Extra allowed origins, comma-separated |
+| `GEMINI_DAILY_CAP` | no | Max Gemini calls per day, default `800` |
+| `RATE_API_MAX`, `RATE_SESSION_MAX`, `RATE_MESSAGE_MAX`, `RATE_BOOKING_MAX` | no | Per-IP limits (defaults 300 / 20 / 40 / 10 per window) |
 
 Never commit `server/.env`. It is gitignored.
 
@@ -99,14 +101,20 @@ Never commit `server/.env`. It is gitignored.
 
 ## Deploy (Render)
 
-`render.yaml` defines two free services: the **API** (`swasthyasaathi-api`) and the **web app** (`swasthyasaathi`, a static site).
+`render.yaml` defines two free services: the **API** and the **web app** (a static site).
 
 1. In Render, choose **New > Blueprint** and select this repo; it reads `render.yaml`.
 2. Enter `MONGODB_URI` and `GEMINI_API_KEY` when prompted.
 3. In Atlas **Network Access**, allow `0.0.0.0/0` (Render's free tier has no fixed IP).
 4. Check `https://<your-api>.onrender.com/api/health`, then open the web app's URL from the Render dashboard.
 
-If the API's URL differs from `https://swasthyasaathi-api.onrender.com`, update `VITE_API_BASE` in `render.yaml` (and the `API_BASE_URL` Actions variable for the APK). The API's CORS already allows `swasthyasaathi*.onrender.com` web origins.
+5. Set `VITE_API_BASE` on the web service (Render dashboard > Environment) to your API's URL, then redeploy it. Use the same URL for the `API_BASE_URL` Actions variable when building the APK. The API's CORS already allows `swasthyasaathi*.onrender.com` web origins.
+
+The API URL is deliberately not stored in this repo. It is configuration, not code.
+
+### Abuse protection
+
+Because the demo API is public, the server limits per-IP usage (sessions, messages and bookings), caps message length, and stops calling Gemini after a daily budget so the free quota can't be drained. When the daily budget is used up, patients see a "very busy today" message; red-flag emergency detection keeps working because it doesn't use the LLM. Tune with `RATE_API_MAX`, `RATE_SESSION_MAX`, `RATE_MESSAGE_MAX`, `RATE_BOOKING_MAX` and `GEMINI_DAILY_CAP`. The daily counter is in memory, so it resets if the server restarts.
 
 The free API tier sleeps when idle, so the first request after a break can take up to a minute. The app shows a "waking up the server" notice while it waits. A free uptime monitor pinging `/api/health` every 5 minutes keeps it awake.
 

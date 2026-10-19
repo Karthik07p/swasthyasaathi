@@ -1,6 +1,13 @@
 import { ISession, Language } from '../models/Session';
 import { checkRedFlag, EMERGENCY_MESSAGES } from './redFlag';
 import { callGemini } from './gemini';
+import { DailyCapError } from '../middleware/limits';
+
+const BUSY_MESSAGES: Record<Language, string> = {
+  en: 'SwasthyaSaathi is very busy today. Please try again tomorrow.',
+  hi: 'स्वास्थ्यसाथी आज बहुत व्यस्त है। कृपया कल फिर कोशिश करें।',
+  mr: 'स्वास्थ्यसाथी आज खूप व्यस्त आहे. कृपया उद्या पुन्हा प्रयत्न करा.',
+};
 
 export type TriageStepResult =
   | { type: 'emergency'; message: string }
@@ -101,6 +108,10 @@ export async function runTriagePipeline(
     // Unexpected action value
     return { type: 'error', message: ERROR_MESSAGES[lang] };
   } catch (err) {
+    if (err instanceof DailyCapError) {
+      console.warn('[triage] Daily Gemini cap reached');
+      return { type: 'error', message: BUSY_MESSAGES[lang] };
+    }
     console.error('[triage] LLM error:', err);
     return { type: 'error', message: ERROR_MESSAGES[lang] };
   }

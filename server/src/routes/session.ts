@@ -2,6 +2,9 @@ import { Router, Request, Response } from 'express';
 import { v4 as uuidv4 } from 'uuid';
 import Session, { Language } from '../models/Session';
 import { runTriagePipeline } from '../services/triage';
+import { sessionLimiter, messageLimiter } from '../middleware/limits';
+
+const MAX_MESSAGE_CHARS = 1000;
 
 const router = Router();
 
@@ -15,7 +18,7 @@ const WELCOME_MESSAGES: Record<Language, string> = {
 
 // ─── POST /api/session ────────────────────────────────────────────────────────
 
-router.post('/', async (req: Request, res: Response) => {
+router.post('/', sessionLimiter, async (req: Request, res: Response) => {
   try {
     const language: Language = ['en', 'hi', 'mr'].includes(req.body.language)
       ? (req.body.language as Language)
@@ -44,15 +47,18 @@ router.post('/', async (req: Request, res: Response) => {
 
 // ─── POST /api/session/:id/message ────────────────────────────────────────────
 
-router.post('/:id/message', async (req: Request, res: Response) => {
+router.post('/:id/message', messageLimiter, async (req: Request, res: Response) => {
   const { id } = req.params;
-  const text: string = req.body.text ?? '';
+  const text: string = typeof req.body.text === 'string' ? req.body.text : '';
   const languageOverride: Language | undefined = ['en', 'hi', 'mr'].includes(req.body.language)
     ? (req.body.language as Language)
     : undefined;
 
   if (!text.trim()) {
     return res.status(400).json({ error: 'Message text is required.' });
+  }
+  if (text.length > MAX_MESSAGE_CHARS) {
+    return res.status(400).json({ error: `Message is too long (max ${MAX_MESSAGE_CHARS} characters).` });
   }
 
   try {
