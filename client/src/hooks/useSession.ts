@@ -3,7 +3,10 @@ import { Language, ChatMessage, SessionStatus, TriageResult } from '../types';
 import { v4 as uuidv4 } from './uuid';
 import { apiUrl } from '../api';
 
-const API_TIMEOUT_MS = 30_000;
+const API_TIMEOUT_MS = 45_000;
+// The free-tier backend can take ~1 minute to wake from sleep on the first request
+const START_TIMEOUT_MS = 75_000;
+const WAKING_NOTICE_AFTER_MS = 5_000;
 
 const ERROR_MESSAGES: Record<Language, string> = {
   en: 'Something went wrong, please try again.',
@@ -32,6 +35,7 @@ export function useSession() {
   const [result, setResult] = useState<TriageResult | null>(null);
   const [language, setLanguageState] = useState<Language>('en');
   const [isLoading, setIsLoading] = useState(false);
+  const [waking, setWaking] = useState(false);
   const sessionIdRef = useRef<string | null>(null);
   // Incremented on every startSession so late responses from superseded calls
   // (e.g. StrictMode's double-mounted effect) are ignored
@@ -63,28 +67,46 @@ export function useSession() {
     setResult(null);
     setLanguageState(lang);
     updateSessionId(null);
+    setWaking(false);
+
+    // If the server is slow to answer, tell the user it is waking up
+    const wakingTimer = setTimeout(() => {
+      if (requestId === startRequestRef.current) setWaking(true);
+    }, WAKING_NOTICE_AFTER_MS);
 
     try {
-      const res = await fetchWithTimeout(
-        apiUrl('/api/session'),
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ language: lang }),
-        },
-        API_TIMEOUT_MS
-      );
-
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = await res.json() as { session_id: string; message: string };
-      if (requestId !== startRequestRef.current) return;
+      let data: { session_id: string; message: string } | null = null;
+      // Two attempts: the first request often just wakes the sleeping server
+      for (let attempt = 0; attempt < 2 && !data; attempt++) {
+        try {
+          const res = await fetchWithTimeout(
+            apiUrl('/api/session'),
+            {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ language: lang }),
+            },
+            START_TIMEOUT_MS
+          );
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          data = (await res.json()) as { session_id: string; message: string };
+        } catch (err) {
+          if (requestId !== startRequestRef.current) return;
+          if (attempt === 1) throw err;
+        }
+      }
+      if (requestId !== startRequestRef.current || !data) return;
       updateSessionId(data.session_id);
       addMessage('assistant', data.message);
     } catch {
       if (requestId !== startRequestRef.current) return;
       addMessage('assistant', ERROR_MESSAGES[lang]);
     } finally {
-      if (requestId === startRequestRef.current) setIsLoading(false);
+      clearTimeout(wakingTimer);
+      if (requestId === startRequestRef.current) {
+        setIsLoading(false);
+        setWaking(false);
+      }
     }
   }, []);
 
@@ -152,6 +174,7 @@ export function useSession() {
     result,
     language,
     isLoading,
+    waking,
     startSession,
     sendMessage,
     setLanguage,

@@ -938,3 +938,14 @@ body {
   color: var(--color-urgent);
   font-weight: 600;
 }
+
+/* ─── Server wake-up notice ─────────────────────────────────── */
+.waking-banner {
+  padding: 8px 14px;
+  background: var(--color-urgent-bg);
+  border-bottom: 1px solid #FDE68A;
+  color: var(--color-urgent);
+  font-size: 13px;
+  font-weight: 600;
+  text-align: center;
+}

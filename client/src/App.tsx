@@ -15,6 +15,7 @@ export default function App() {
     result,
     language,
     isLoading,
+    waking,
     startSession,
     sendMessage,
     setLanguage,
@@ -66,6 +67,16 @@ export default function App() {
             disabled={isLoading}
           />
         </header>
+
+        {waking && (
+          <div className="waking-banner" role="status">
+            {language === 'hi'
+              ? 'सर्वर शुरू हो रहा है… पहली बार में एक मिनट तक लग सकता है।'
+              : language === 'mr'
+              ? 'सर्व्हर सुरू होत आहे… पहिल्यांदा एक मिनिटापर्यंत लागू शकतो.'
+              : 'Waking up the server… this can take up to a minute the first time.'}
+          </div>
+        )}
 
         {/* ── Chat Area ── */}
         <ChatWindow
